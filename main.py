@@ -175,5 +175,13 @@ def main():
         with open("cdf.json", "w") as outfile:
             json.dump(dict, outfile)
 
+        dict = {}
+        dict["totalRequests"] = cacheObj["totalRequests"]
+        dict["cacheHits"] = cacheObj["cacheHits"] 
+        dict["cacheMiss"] = cacheObj["cacheMiss"]
+        dict["leastLoadedCalls"] = cacheObj["LEASTLOADEDCALLS"]
+        with open("requestDetails.json", "w") as outfile:
+            json.dump(dict, outfile)
+
 if __name__ == "__main__":
     main()

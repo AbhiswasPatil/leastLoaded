@@ -26,8 +26,10 @@ class PaSch:
         self.cacheHits = 0
         self.cacheMiss = 0
 
+        self.LEASTLOADEDCALLS = 0
+
     def getCacheHitAndMissDetails(self):
-        return {"totalRequests":self.totalRequests,"cacheHits":self.cacheHits,"cacheMiss":self.cacheMiss}
+        return {"totalRequests":self.totalRequests,"cacheHits":self.cacheHits,"cacheMiss":self.cacheMiss , "LEASTLOADEDCALLS": self.LEASTLOADEDCALLS}
 
     def getLoad(self, worker_id, timestamp):
         workerNodes = self.workers
@@ -42,6 +44,7 @@ class PaSch:
 
 
     def getLeastLoadedWorker(self,timestamp):
+            self.LEASTLOADEDCALLS += 1
             #uses all keys in consistent Hash and gets min loaded
             min_worker_id =""
             min_worker_id_load = math.inf
@@ -146,49 +149,20 @@ class PaSch:
         if(err!= "") :
             print("No packages in function : ",function_id," to run !!!\n")
         
-        # selectedWorker1,selectedWorker2 -> worker_id
-        err1,selectedWorker1 = self.consitentHash.getWorker(pkg)
-        err2,selectedWorker2 = self.consitentHash.getWorker(pkg+self.salt)
-        # print("Selected workers for function,",function_id,"are :",selectedWorker1,selectedWorker2)
-
-        load_1 = self.getLoad(selectedWorker1,timestamp)
-        load_2 = self.getLoad(selectedWorker2,timestamp)
-        # print("load1 :",load_1)
-        # print("load2 :",load_2)
-
-        #chooses the least loaded among 2 chosen worker nodes
-        chosen_power_of_two_node = selectedWorker1
-        if(load_1>load_2):
-            chosen_power_of_two_node=selectedWorker2
-
-        chosen_node_to_run = chosen_power_of_two_node
-        index_of_chosen_node_to_run = self.getIndexInWorkersArray(chosen_node_to_run) 
-
-        if(self.getLoad(chosen_power_of_two_node,timestamp) >= self.threshold ):
-            chosen_node_to_run = self.getLeastLoadedWorker(timestamp) # returns worker_id
-            index_of_chosen_node_to_run=self.getIndexInWorkersArray(chosen_node_to_run)
+        chosen_node_to_run = self.getLeastLoadedWorker(timestamp)
+        index_of_chosen_node_to_run=self.getIndexInWorkersArray(chosen_node_to_run)
         
-        # DO: what if least loaded is also crossing threshold ??
-
-        # all clear till here
-
-
-        # increase its currentLoad, update caached packages, after all that update the workers array in Pasch
-        # self.workerId = worker_id , self.threshold = threshold, self.currentLoad = 0
-        # self.cachedPackages = [], self.lastExecutedTime = {}
-
-        # calculate if biggest package was hit or missed
 
         finalTimeOfFunctionExecution = timestamp + function_object.function_size
 
         if(self.workers[index_of_chosen_node_to_run].lastExecutedTime.get(pkg) == None) :
             # first time caching pkg
             # print("First time importing on node :",self.workers[index_of_chosen_node_to_run].worker_id,"package: ",pkg)
-            #hence totalTimeOfFunctionExecution remains same
+            # hence totalTimeOfFunctionExecution remains same
             self.cacheMiss = self.cacheMiss + 1
         elif(self.workers[index_of_chosen_node_to_run].lastExecutedTime[pkg] + cacheCleanTime > timestamp) :
             # print("CACHE HIT ON NODE :",self.workers[index_of_chosen_node_to_run].worker_id, "for package :", pkg)
-            #as cache is hit, we will remove largest packag's time from time of execution
+            # as cache is hit, we will remove largest packag's time from time of execution
             finalTimeOfFunctionExecution -= package_object.package_size
             self.cacheHits = self.cacheHits + 1
         else :
