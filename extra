@@ -1,0 +1,21 @@
+ def runFunction(self,function: string,timestamp):
+        #runs a passed function 
+        #uses global salt
+
+        # gets the 2 chosen worker nodes
+        worker_zero = self.consitentHash.getWorker(function) 
+        worker_one = self.consitentHash.getWorker(function+self.salt) 
+
+        # gets the load of chosen worker nodes
+        load_zero = self.getLoad(worker_zero)
+        load_one = self.getLoad(worker_one)
+
+        #chooses the least loaded among 2 chosen worker nodes
+        chosen_power_of_two_node = worker_zero
+        if(load_zero>load_one):
+            chosen_power_of_two_node=worker_one
+
+        # DO: if currLoad(worker)>= threshold(worker)
+        # get the least loaded 
+        # else us it  
+

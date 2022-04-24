@@ -1,0 +1,13 @@
+[{
+    "function_id": "foo",
+    "function_imports": ["p0", "p1"],
+    "function_size": 10
+}, {
+    "function_id": "bar",
+    "function_imports": ["p0", "p2"],
+    "function_size": 15
+}, {
+    "function_id": "par",
+    "function_imports": ["p1", "p2"],
+    "function_size": 20
+}]
