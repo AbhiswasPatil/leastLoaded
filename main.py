@@ -1,12 +1,13 @@
 import json
+from matplotlib import pyplot as plt
 import statistics
 from statistics import mean
 
 from worker import Worker
 from function import Function
 from package import Package
-from paSch import PaSch
-from matplotlib import pyplot as plt
+from leastLoaded import LeastLoaded
+
 
 def main():
 
@@ -40,12 +41,10 @@ def main():
                 {"worker_id": "3", "threshold": 150}]
 
         test_workers = []
-        test_hashworkers = []
         for x in workers:
             test_workers.append(Worker(x["worker_id"], x["threshold"]))
-            test_hashworkers.append(x["worker_id"])
 
-        scheduler = PaSch(test_hashworkers, test_workers,
+        scheduler = LeastLoaded(test_workers,
                 global_fn, global_pkgs)
 
         while True:
@@ -105,20 +104,18 @@ def main():
         pkgs = json.load(pkgs_file)
 
         test_workers = []
-        test_hashworkers = []
         workers = pkgs["workers"]  #workers are taken from the test/{i} file
         for x in workers:
             test_workers.append(Worker(x["worker_id"], x["threshold"]))
-            test_hashworkers.append(x["worker_id"])
 
-        scheduler = PaSch(test_hashworkers, test_workers,
+        scheduler = LeastLoaded(test_workers,
                 global_fn, global_pkgs)
 
         fn_execution = pkgs["functions"]
 
 
-        CDF_calculation_time = []
-        CDF_calculation_variable = []
+        CV_calculation_time = []
+        CV_calculation_variable = []
 
         CHR_calculation_time = []
         CHR_calculation_variable = []
@@ -139,8 +136,8 @@ def main():
             sd_of_list = statistics.pstdev(new_list_of_workers)
             mean_of_list = mean(new_list_of_workers)
 
-            CDF_calculation_time.append(curr_time)
-            CDF_calculation_variable.append(sd_of_list/mean_of_list)
+            CV_calculation_time.append(curr_time)
+            CV_calculation_variable.append(sd_of_list/mean_of_list)
             
             CHR_calculation_time.append(curr_time)
             cacheObj = scheduler.getCacheHitAndMissDetails()
@@ -149,11 +146,11 @@ def main():
         
         print("FINAL CACHE HITS/MISS DETAILS:",scheduler.getCacheHitAndMissDetails())
         # print(scheduler.getWorkerDetails(fn_execution[-1]["timestamp"]))
-        plt.plot(CDF_calculation_time,CDF_calculation_variable)
-        plt.title('CDF calculation')
+        plt.plot(CV_calculation_time,CV_calculation_variable)
+        plt.title('CV calculation')
         plt.xlabel('Time')
-        plt.ylabel('CDF value')
-        plt.savefig('CDF.png')
+        plt.ylabel('CV value')
+        plt.savefig('CV.png')
 
         
         plt.figure()
@@ -170,9 +167,9 @@ def main():
             json.dump(dict, outfile)
         
         dict = {}
-        dict["time"] = CDF_calculation_time
-        dict["cdf"] = CDF_calculation_variable 
-        with open("cdf.json", "w") as outfile:
+        dict["time"] = CV_calculation_time
+        dict["cv"] = CV_calculation_variable 
+        with open("cv.json", "w") as outfile:
             json.dump(dict, outfile)
 
         dict = {}

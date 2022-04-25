@@ -1,31 +1,20 @@
-#it will also have consistentHash, and will use it to access worker_id (consitentHash <-> workers)
-
 import math
-
-import string
-
-from requests import delete
-from consistentHash import ConsistentHash
 from GLOBAL import *
-from function import Function
-from worker import Worker
 
-class PaSch:
+class LeastLoaded:
     # workers: Worker[], functions : Function[], packages : Package[]
-    def __init__(self,hashworkers, workers, functions, packages):
+    def __init__(self, workers, functions, packages):
+         
         
-        self.consitentHash = ConsistentHash(hashworkers) #so now updates in hash are part of pasch so no worries
-        
-        self.salt = salt
         self.threshold = threshold
 
         self.workers = workers
         self.functions = functions
         self.packages = packages
+        
         self.totalRequests = 0
         self.cacheHits = 0
         self.cacheMiss = 0
-
         self.LEASTLOADEDCALLS = 0
 
     def getCacheHitAndMissDetails(self):
@@ -45,7 +34,6 @@ class PaSch:
 
     def getLeastLoadedWorker(self,timestamp):
             self.LEASTLOADEDCALLS += 1
-            #uses all keys in consistent Hash and gets min loaded
             min_worker_id =""
             min_worker_id_load = math.inf
             for i in range(0,len(self.workers)) :
@@ -80,19 +68,15 @@ class PaSch:
             #updates current Load
             workerNodes[i].currentLoad = self.getLoad(workerNodes[i].worker_id,timestamp)
             # updates runningFunctions -> they are updated automatically when getLoad is called
-            # DO :updates lastExecutedTime
-            # {pid,time}
+            # updates lastExecutedTime {pid,time}
             newLastExecutedTime = {}
             for key in workerNodes[i].lastExecutedTime :
                 if(workerNodes[i].lastExecutedTime[key] + cacheCleanTime > timestamp) :
                     #time to remove cached pkg is yet to come hence keep them as they are in the map
                     newLastExecutedTime[key] = workerNodes[i].lastExecutedTime[key]
-                    # print(key,"is previously run at", workerNodes[i].lastExecutedTime[key] )
-                    # print("its included in new list as well")
             
             workerNodes[i].lastExecutedTime.clear()
             workerNodes[i].lastExecutedTime.update(newLastExecutedTime)
-            # print("for worker_id",workerNodes[i].worker_id,"it has",workerNodes[i].lastExecutedTime)
 
         return workerNodes
 
@@ -113,32 +97,24 @@ class PaSch:
                 return i
 
     def addWorker(self,worker) :
-        # print("previous workers in total were :",len(self.workers))
         workerNodes = self.workers
         workerNodes.append(worker)
-        self.workers = workerNodes #added in PasCh
-        self.consitentHash.addWorker(worker.worker_id) #added in Consistent hash
-        # print("total workers are now :".len(self.workers))
+        self.workers = workerNodes 
     
     def removeWorker(self,worker_id) :
-        print("previous workers in total were :",len(self.workers))
         workerNodes = self.workers
         newWorkerNodes = []
         for x in workerNodes:
             if(x.worker_id != worker_id) :
                 newWorkerNodes.append(x)
         
-        self.workers = newWorkerNodes #added in PasCh
-        self.consitentHash.removeWorker(worker_id) #added in Consistent hash
-        print("total workers are now :",len(self.workers))
+        self.workers = newWorkerNodes 
 
     def assignWorker(self,function_id,timestamp):
         
         workerNodes = self.workers
         self.totalRequests = self.totalRequests + 1
 
-        # if(len(workerNodes) == 0):
-        #     return {"there are no worker nodes", None}
 
         function_object = self.functions[self.getIndexInFunctionsArray(function_id)]
 
@@ -157,25 +133,22 @@ class PaSch:
 
         if(self.workers[index_of_chosen_node_to_run].lastExecutedTime.get(pkg) == None) :
             # first time caching pkg
-            # print("First time importing on node :",self.workers[index_of_chosen_node_to_run].worker_id,"package: ",pkg)
-            # hence totalTimeOfFunctionExecution remains same
             self.cacheMiss = self.cacheMiss + 1
         elif(self.workers[index_of_chosen_node_to_run].lastExecutedTime[pkg] + cacheCleanTime > timestamp) :
-            # print("CACHE HIT ON NODE :",self.workers[index_of_chosen_node_to_run].worker_id, "for package :", pkg)
             # as cache is hit, we will remove largest packag's time from time of execution
             finalTimeOfFunctionExecution -= package_object.package_size
             self.cacheHits = self.cacheHits + 1
         else :
-            # print("CACHE missed !!!! ON NODE :",self.workers[index_of_chosen_node_to_run].worker_id, "for package :",pkg)
             self.cacheMiss = self.cacheMiss + 1
-        #DO : add the new function to execute in the worker.runningFunction list depending on cache hit or missed
+
+        #add the new function to execute in the worker.runningFunction list depending on cache hit or missed
         workerNodes[index_of_chosen_node_to_run].runningFunctions.append({"finish_time":finalTimeOfFunctionExecution,
                                                                         "function_id":function_object.function_id})
         
         #updating load
         workerNodes[index_of_chosen_node_to_run].currentLoad = len(workerNodes[index_of_chosen_node_to_run].runningFunctions)
 
-        #updating the cache executed time for all imported packages including the biggest package
+        # updating the cache executed time for all imported packages including the biggest package
         # packages_imported contains array of package_id
         packages_imported = self.functions[self.getIndexInFunctionsArray(function_id)].function_imports 
         for i in range(0,len(packages_imported)):
